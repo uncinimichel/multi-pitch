@@ -8,212 +8,227 @@ var isCardTurned = start.includes('?overview');
 
 
 // MULTI RANGE SLIDER JS
-(function() {
-"use strict";
+(function () {
+    "use strict";
 
-var supportsMultiple = self.HTMLInputElement && "valueLow" in HTMLInputElement.prototype;
+    var supportsMultiple = self.HTMLInputElement && "valueLow" in HTMLInputElement.prototype;
 
-var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    var descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
 
-self.multirange = function(input) {
-  if (supportsMultiple || input.classList.contains("multirange")) {
-    return;
-  }
+    self.multirange = function (input) {
+        if (supportsMultiple || input.classList.contains("multirange")) {
+            return;
+        }
 
-  var value = input.getAttribute("value");
-  var values = value === null ? [] : value.split(",");
-  var min = +(input.min || 0);
-  var max = +(input.max || 100);
-  var ghost = input.cloneNode();
+        var value = input.getAttribute("value");
+        var values = value === null ? [] : value.split(",");
+        var min = +(input.min || 0);
+        var max = +(input.max || 100);
+        var ghost = input.cloneNode();
 
-  input.classList.add("multirange", "original");
-  ghost.classList.add("multirange", "ghost");
+        input.classList.add("multirange", "original");
+        ghost.classList.add("multirange", "ghost");
 
-  input.value = values[0] || min + (max - min) / 2;
-  ghost.value = values[1] || min + (max - min) / 2;
+        input.value = values[0] || min + (max - min) / 2;
+        ghost.value = values[1] || min + (max - min) / 2;
 
-  input.parentNode.insertBefore(ghost, input.nextSibling);
+        input.parentNode.insertBefore(ghost, input.nextSibling);
 
-  Object.defineProperty(input, "originalValue", descriptor.get ? descriptor : {
-    // Damn you Safari 
-    get: function() { return this.value; },
-    set: function(v) { this.value = v; }
-  });
+        Object.defineProperty(input, "originalValue", descriptor.get ? descriptor : {
+            // Damn you Safari
+            get: function () {
+                return this.value;
+            },
+            set: function (v) {
+                this.value = v;
+            }
+        });
 
-  Object.defineProperties(input, {
-    valueLow: {
-      get: function() { return Math.min(this.originalValue, ghost.value); },
-      set: function(v) { this.originalValue = v; },
-      enumerable: true
-    },
-    valueHigh: {
-      get: function() { return Math.max(this.originalValue, ghost.value); },
-      set: function(v) { ghost.value = v; },
-      enumerable: true
-    }
-  });
+        Object.defineProperties(input, {
+            valueLow: {
+                get: function () {
+                    return Math.min(this.originalValue, ghost.value);
+                },
+                set: function (v) {
+                    this.originalValue = v;
+                },
+                enumerable: true
+            },
+            valueHigh: {
+                get: function () {
+                    return Math.max(this.originalValue, ghost.value);
+                },
+                set: function (v) {
+                    ghost.value = v;
+                },
+                enumerable: true
+            }
+        });
 
-  if (descriptor.get) {
-    Object.defineProperty(input, "value", {
-      get: function() { return this.valueLow + "," + this.valueHigh; },
-      set: function(v) {
-        var values = v.split(",");
-        this.valueLow = values[0];
-        this.valueHigh = values[1];
+        if (descriptor.get) {
+            Object.defineProperty(input, "value", {
+                get: function () {
+                    return this.valueLow + "," + this.valueHigh;
+                },
+                set: function (v) {
+                    var values = v.split(",");
+                    this.valueLow = values[0];
+                    this.valueHigh = values[1];
+                    update();
+                },
+                enumerable: true
+            });
+        }
+
+        if (typeof input.oninput === "function") {
+            ghost.oninput = input.oninput.bind(input);
+        }
+
+        function update() {
+            ghost.style.setProperty("--low", 100 * ((input.valueLow - min) / (max - min)) + 1 + "%");
+            ghost.style.setProperty("--high", 100 * ((input.valueHigh - min) / (max - min)) - 1 + "%");
+        }
+
+        input.addEventListener("input", update);
+        ghost.addEventListener("input", update);
+
         update();
-      },
-      enumerable: true
-    });
-  }
+    }
 
-  if (typeof input.oninput === "function") {
-    ghost.oninput = input.oninput.bind(input);
-  }
+    multirange.init = function () {
+        [].slice.call(document.querySelectorAll("input[type=range][multiple]:not(.multirange)")).forEach(multirange);
+    }
 
-  function update() {
-    ghost.style.setProperty("--low", 100 * ((input.valueLow - min) / (max - min)) + 1 + "%");
-    ghost.style.setProperty("--high", 100 * ((input.valueHigh - min) / (max - min)) - 1 + "%");
-  }
-
-  input.addEventListener("input", update);
-  ghost.addEventListener("input", update);
-
-  update();
-}
-
-multirange.init = function() {
-  [].slice.call(document.querySelectorAll("input[type=range][multiple]:not(.multirange)")).forEach(multirange);
-}
-
-if (document.readyState == "loading") {
-  document.addEventListener("DOMContentLoaded", multirange.init);
-}
-else {
-  multirange.init();
-}
+    if (document.readyState == "loading") {
+        document.addEventListener("DOMContentLoaded", multirange.init);
+    } else {
+        multirange.init();
+    }
 
 })();
 
 // SHOW VALUES INLINE
-function showVal(values, field){
-  
-  var lowerValue = values.split(',')[0];
-  var higherValue = values.split(',')[1];
-  
-  if (field == 'grade'){
-    const gradeMappings = { 1: 'Diff', 2: 'VDiff', 3: 'HVD', 4: 'Sev', 5: 'HS', 6: 'VS', 7: 'HVS' };
-    lowerValue = gradeMappings[parseInt(lowerValue)];
-    higherValue = gradeMappings[parseInt(higherValue)];
-  }
-  document.getElementById(field + "1").innerHTML = lowerValue;
-  document.getElementById(field + "2").innerHTML = higherValue;
-  filterCards();
+function showVal(values, field) {
+
+    var lowerValue = values.split(',')[0];
+    var higherValue = values.split(',')[1];
+
+    if (field == 'grade') {
+        const gradeMappings = {1: 'Diff', 2: 'VDiff', 3: 'HVD', 4: 'Sev', 5: 'HS', 6: 'VS', 7: 'HVS'};
+        lowerValue = gradeMappings[parseInt(lowerValue)];
+        higherValue = gradeMappings[parseInt(higherValue)];
+    }
+    document.getElementById(field + "1").innerHTML = lowerValue;
+    document.getElementById(field + "2").innerHTML = higherValue;
+    filterCards();
 }
 
 // FILTER CARDS
 function filterCards() {
-  
-  var resultCount = 0;
-  
-  var lowGrade = parseInt(document.getElementById('gradeRange').value.split(',')[0]);
-  var highGrade = parseInt(document.getElementById('gradeRange').value.split(',')[1]);
-  var lowHeight = parseInt(document.getElementById('heightRange').value.split(',')[0]);
-  var highHeight = parseInt(document.getElementById('heightRange').value.split(',')[1]);  
-  var lowApproch = parseInt(document.getElementById('approchRange').value.split(',')[0]);
-  var highApproch = parseInt(document.getElementById('approchRange').value.split(',')[1]);
+
+    var resultCount = 0;
+
+    var lowGrade = parseInt(document.getElementById('gradeRange').value.split(',')[0]);
+    var highGrade = parseInt(document.getElementById('gradeRange').value.split(',')[1]);
+    var lowHeight = parseInt(document.getElementById('heightRange').value.split(',')[0]);
+    var highHeight = parseInt(document.getElementById('heightRange').value.split(',')[1]);
+    var lowApproch = parseInt(document.getElementById('approchRange').value.split(',')[0]);
+    var highApproch = parseInt(document.getElementById('approchRange').value.split(',')[1]);
 
 
-  var cards = document.getElementsByClassName('card');
+    var cards = document.getElementsByClassName('card');
 
-  for (var i = 0; i < cards.length; i++) {
-    
-    var dataGrade = cards[i].getAttribute('data-grade');
-    var dataHeight = cards[i].getAttribute('data-height');
-    var dataApproch = cards[i].getAttribute('data-approch');
-    
-    if (
-      parseInt(dataGrade) >= lowGrade 
-      && parseInt(dataGrade) <= highGrade
-      && parseInt(dataHeight) >= lowHeight
-      && parseInt(dataHeight) <= highHeight
-      && parseInt(dataApproch) >= lowApproch
-      && parseInt(dataApproch) <= highApproch
-    ){
-      cards[i].style.display = "block";
-      resultCount += 1;
-    } else {
-      cards[i].style.display = "none";
+    for (var i = 0; i < cards.length; i++) {
+
+        var dataGrade = cards[i].getAttribute('data-grade');
+        var dataHeight = cards[i].getAttribute('data-height');
+        var dataApproch = cards[i].getAttribute('data-approch');
+
+        if (
+            parseInt(dataGrade) >= lowGrade
+            && parseInt(dataGrade) <= highGrade
+            && parseInt(dataHeight) >= lowHeight
+            && parseInt(dataHeight) <= highHeight
+            && parseInt(dataApproch) >= lowApproch
+            && parseInt(dataApproch) <= highApproch
+        ) {
+            cards[i].style.display = "block";
+            resultCount += 1;
+        } else {
+            cards[i].style.display = "none";
+        }
     }
-  }
-  
-  if (resultCount === 0) {
-    document.getElementById('noResults').style.display = 'block';
-  } else {
-    document.getElementById('noResults').style.display = 'none';
-  }
+
+    if (resultCount === 0) {
+        document.getElementById('noResults').style.display = 'block';
+    } else {
+        document.getElementById('noResults').style.display = 'none';
+    }
 }
 
 // MULTI SORT 
-if( typeof helper == 'undefined' ) {
-  var helper = { } ;
+if (typeof helper == 'undefined') {
+    var helper = {};
 }
 
 helper.arr = {
     /**
      * Function to sort multidimensional array
-     * 
+     *
      * param {array} [arr] Source array
      * param {array} [columns] List of columns to sort
      * param {array} [order_by] List of directions (ASC, DESC)
      * returns {array}
-    */
-    multisort: function(arr, columns, order_by) {
-        if(typeof columns == 'undefined') {
+     */
+    multisort: function (arr, columns, order_by) {
+        if (typeof columns == 'undefined') {
             columns = []
-            for(x=0;x<arr[0].length;x++) {
+            for (x = 0; x < arr[0].length; x++) {
                 columns.push(x);
             }
         }
-        if(typeof order_by == 'undefined') {
+        if (typeof order_by == 'undefined') {
             order_by = []
-            for(x=0;x<arr[0].length;x++) {
+            for (x = 0; x < arr[0].length; x++) {
                 order_by.push('ASC');
             }
         }
-        function multisort_recursive(a,b,columns,order_by,index) {  
+
+        function multisort_recursive(a, b, columns, order_by, index) {
             var direction = order_by[index] == 'DESC' ? 1 : 0;
 
-            var is_numeric = !isNaN(a[columns[index]]-b[columns[index]]);
+            var is_numeric = !isNaN(a[columns[index]] - b[columns[index]]);
 
             var x = is_numeric ? a[columns[index]] : a[columns[index]].toLowerCase();
             var y = is_numeric ? b[columns[index]] : b[columns[index]].toLowerCase();
 
-            if(!is_numeric) {
-                x = helper.string.to_ascii(a[columns[index]].toLowerCase(),-1),
-                y = helper.string.to_ascii(b[columns[index]].toLowerCase(),-1);
+            if (!is_numeric) {
+                x = helper.string.to_ascii(a[columns[index]].toLowerCase(), -1),
+                    y = helper.string.to_ascii(b[columns[index]].toLowerCase(), -1);
             }
-            if(x < y) {
-                    return direction == 0 ? -1 : 1;
+            if (x < y) {
+                return direction == 0 ? -1 : 1;
             }
-            if(x == y)  {
-                return columns.length-1 > index ? multisort_recursive(a,b,columns,order_by,index+1) : 0;
+            if (x == y) {
+                return columns.length - 1 > index ? multisort_recursive(a, b, columns, order_by, index + 1) : 0;
             }
             return direction == 0 ? 1 : -1;
         }
-        return arr.sort(function (a,b) {
-            return multisort_recursive(a,b,columns,order_by,0);
+
+        return arr.sort(function (a, b) {
+            return multisort_recursive(a, b, columns, order_by, 0);
         });
     }
 }
 
 // Publish cards from array
-function publishCards(climbsArr){
-  for (var i = 0; i < climbsArr.length; i++) {
-	 if(climbsArr[i].status === 'publish'){
-	  var cImgs = climbImgs.imgs.filter(img => img.climbId === climbsArr[i].id); // get all the imgs for the climb
-      var tileImg = cImgs.find(img => img.type === 'tile'); // get the map img object 
+function publishCards(climbsArr) {
+    for (var i = 0; i < climbsArr.length; i++) {
+        if (climbsArr[i].status === 'publish') {
+            var cImgs = climbImgs.imgs.filter(img => img.climbId === climbsArr[i].id); // get all the imgs for the climb
+            var tileImg = cImgs.find(img => img.type === 'tile'); // get the map img object
 
-      var card = `
+            var card = `
 		<div data-grade="${climbsArr[i].dataGrade}" data-height="${climbsArr[i].length}" id="${climbsArr[i].id}" data-approch="${climbsArr[i].approchTime}" class="card">
 		  <img src="${tileImg.url}" alt="${tileImg.alt}" class="crag-hero">
 		  <div class="card-body">
@@ -231,48 +246,48 @@ function publishCards(climbsArr){
 		  </div>
 		  <a class="open-tile" onclick="showTile(${climbsArr[i].id});">SHOW MORE INFO</a>
 		</div>`;
-    
-      cardHolder.innerHTML += card; 
+
+            cardHolder.innerHTML += card;
+        }
     }
-  }
 }
 
 /** SORT AND PUBLISH CARDS **/
-function sortCards(sortBy, direction){
-  var c = document.getElementsByClassName("card");
-  while (c.length > 0) c[0].remove();
-  var climbsSorted = helper.arr.multisort(climbsData.climbs, [sortBy, 'dataGrade'], [direction,'ASC']);
-  publishCards(climbsSorted);
+function sortCards(sortBy, direction) {
+    var c = document.getElementsByClassName("card");
+    while (c.length > 0) c[0].remove();
+    var climbsSorted = helper.arr.multisort(climbsData.climbs, [sortBy, 'dataGrade'], [direction, 'ASC']);
+    publishCards(climbsSorted);
 }
 
 /** SHOW FULL CLIMB INFO **/
-function showTile(theId){
-  var climb = climbsData.climbs.find(c => c.id === theId); // get the climb object by id
-  var cImgs = climbImgs.imgs.filter(img => img.climbId === theId); 
-  var mapImg = cImgs.find(img => img.type === 'map'); // get the map img object 
-  var cragImg = cImgs.find(img => img.type === 'crag'); 
-  var topoImg = cImgs.find(img => img.type === 'topo'); 
+function showTile(theId) {
+    var climb = climbsData.climbs.find(c => c.id === theId); // get the climb object by id
+    var cImgs = climbImgs.imgs.filter(img => img.climbId === theId);
+    var mapImg = cImgs.find(img => img.type === 'map'); // get the map img object
+    var cragImg = cImgs.find(img => img.type === 'crag');
+    var topoImg = cImgs.find(img => img.type === 'topo');
 
-  // a check to see if the user has landed on a page from a direct link
-  if(isCardTurned != true){
-    var url =  '?overview=' + `${climb.id}`.toLowerCase();
-    url = url.replace(' ', '-');
-    window.history.pushState(history_data, climb.cliff, url);
-  }
-  
-  document.getElementById('overlay').setAttribute("style", "display:block;background:rgba(0,0,0, 0.7);");
-  document.getElementById('close').setAttribute("style", "display:block;");
-  document.getElementById('bdy').setAttribute("style", "overflow:hidden");
+    // a check to see if the user has landed on a page from a direct link
+    if (isCardTurned != true) {
+        var url = '?overview=' + `${climb.id}`.toLowerCase();
+        url = url.replace(' ', '-');
+        window.history.pushState(history_data, climb.cliff, url);
+    }
 
-  // If there is a saved map image use it - otherwise generate the map from Google API
-  try{
-      var mapUrl = root + mapImg.url;
-  } catch {
-      var mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${climb.geoLocation}&zoom=13&size=800x180&maptype=terrain&scale=2&markers=icon:|${climb.geoLocation}&key=AIzaSyBbmuRJliCb7a1QIKV-PTKmcSsahj20lwM`;
-  }
-  
-  try {
-    var routeTopo = `
+    document.getElementById('overlay').setAttribute("style", "display:block;background:rgba(0,0,0, 0.7);");
+    document.getElementById('close').setAttribute("style", "display:block;");
+    document.getElementById('bdy').setAttribute("style", "overflow:hidden");
+
+    // If there is a saved map image use it - otherwise generate the map from Google API
+    try {
+        var mapUrl = root + mapImg.url;
+    } catch {
+        var mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${climb.geoLocation}&zoom=13&size=800x180&maptype=terrain&scale=2&markers=icon:|${climb.geoLocation}&key=AIzaSyBbmuRJliCb7a1QIKV-PTKmcSsahj20lwM`;
+    }
+
+    try {
+        var routeTopo = `
       <div class="img-contaner">
         <a href="${root}${topoImg.url}" target="blank" class="card-img-anch">
         <img src="${root}${topoImg.url.replace(".jpg", "-s.jpg")}" alt="${topoImg.alt}" class="crag-hero" >
@@ -282,12 +297,12 @@ function showTile(theId){
           <a href="${topoImg.atributionURL}" target="blank">${topoImg.attributionText}</a>
         </p>
     </div>`;
-  } catch {
-    console.log('no route topo for climb with id:' + theId);
-  }
-  
-  try {
-     var cragImg = `
+    } catch {
+        console.log('no route topo for climb with id:' + theId);
+    }
+
+    try {
+        var cragImg = `
        <div class="img-contaner">
       <a href="${root}${cragImg.url}" target="blank" class="card-img-anch">
      <img src="${root}${cragImg.url.replace(".jpg", "-s.jpg")}" alt="${cragImg.alt}" class="crag-hero" >
@@ -297,11 +312,11 @@ function showTile(theId){
         <a href="${cragImg.atributionURL}" target="blank">${cragImg.attributionText}</a>
       </p>
     </div>`;
-  } catch {
-    console.log('no crag image for climb with id:' + theId);
-  }
-  
-  var fullCard = `
+    } catch {
+        console.log('no crag image for climb with id:' + theId);
+    }
+
+    var fullCard = `
    <div class="card big-card">
     <div class="card-body" style="padding:0;">
       <div class="img-contaner">
@@ -373,29 +388,29 @@ function showTile(theId){
     </div>
   </div> 
   `;
-  document.getElementById('overlay').innerHTML = fullCard; 
+    document.getElementById('overlay').innerHTML = fullCard;
 }
 
 // hide expanded card info
-function hideTile(){
-  history.replaceState(start, 'The best multi-pitch climbs', root);
-  isCardTurned = false; // ensure future clicks don't think its first load again
-  document.getElementById('close').setAttribute("style", "display:none;");
-  document.getElementById('overlay').setAttribute("style", "display:none;background:rgba(0,0,0, 0.0);");
-  document.getElementById('bdy').setAttribute("style", "");
+function hideTile() {
+    history.replaceState(start, 'The best multi-pitch climbs', root);
+    isCardTurned = false; // ensure future clicks don't think its first load again
+    document.getElementById('close').setAttribute("style", "display:none;");
+    document.getElementById('overlay').setAttribute("style", "display:none;background:rgba(0,0,0, 0.0);");
+    document.getElementById('bdy').setAttribute("style", "");
 }
 
 // need to handel history.onPopstate ie. user presses back
-window.onpopstate = function(event) {
-  hideTile();
+window.onpopstate = function (event) {
+    hideTile();
 }
 
-window.onload = function() {
-  // Sorts and publishes the cards
-  sortCards('dataGrade', 'ASC');
-  if(isCardTurned === true){
-    var overview = start.split('=');
-    var cardToLoad = overview[1];
-    showTile(parseInt(cardToLoad));
-  }
+window.onload = function () {
+    // Sorts and publishes the cards
+    sortCards('dataGrade', 'ASC');
+    if (isCardTurned === true) {
+        var overview = start.split('=');
+        var cardToLoad = overview[1];
+        showTile(parseInt(cardToLoad));
+    }
 }
